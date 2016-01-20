@@ -17,7 +17,8 @@ exports.list = function (req, res) {
 
 // Devuelve la vista del formulario para subir una nueva canción
 exports.new = function (req, res) {
-        res.render('tracks/new');
+	var texto = '';
+	res.render('tracks/new', {texto:texto});
 };
 
 // Devuelve la vista de reproducción de una canción.
@@ -36,6 +37,7 @@ exports.show = function (req, res) {
 //Escribe en tracks.cdpsfy.es el fichero de audio contenido en req.files.track.buffer
 //Escribe en la base de datos la verdadera url generada al añadir el fichero en el servidor tracks.cdpsfy.es
 exports.create = function (req, res) {
+	var texto = '';
         var track = req.files.track;
 		//Si la cancion es undefined no se ha introducido nada
 		if(track!==undefined){
@@ -75,27 +77,34 @@ exports.create = function (req, res) {
 						// Esta url debe ser la correspondiente al nuevo fichero en tracks.cdpsfy.es
 						var url = 'http://tracks.cdpsfy.es/cancion/' + track.originalname;
 						var urlImg = 'http://tracks.cdpsfy.es/imagen/' + image.originalname;
-						// Escribe los metadatos de la nueva canción en el registro.
-						var new_track = new Tracks({
-							name: name,
-							url: url,
-							imgname: image.originalname,
-							urlImg: urlImg
-						 });
-						//Guardamos la canción en la Base de datos
-						new_track.save(function(err, new_track) {
-							if (err) {
-								console.log('Error al subir el audio: ' + err);
-							};
-						});
-						//Mandamos la petición POST al servidor para guardar la canción y la imagen
-						needle.post('http://tracks.cdpsfy.es', data, {multipart: true}, function optionalCallback(err, httpResponse, body) {
-						  if (err) {
-							return console.error('upload failed:', err);
-						  }
-						  console.log('Upload successful!  Server responded with:', body);
-						  res.redirect('/tracks');
-						});
+						Tracks.find({name: name}, function(err, tracks) {
+								if(tracks == ''){
+									// Escribe los metadatos de la nueva canción en el registro.
+									var new_track = new Tracks({
+										name: name,
+										url: url,
+										imgname: image.originalname,
+										urlImg: urlImg
+									 });
+									//Guardamos la canción en la Base de datos
+									new_track.save(function(err, new_track) {
+										if (err) {
+											console.log('Error al subir el audio: ' + err);
+										};
+									});
+									//Mandamos la petición POST al servidor para guardar la canción y la imagen
+									needle.post('http://tracks.cdpsfy.es', data, {multipart: true}, function optionalCallback(err, httpResponse, body) {
+										if (err) {
+										return console.error('upload failed:', err);
+										}
+										console.log('Upload successful!  Server responded with:', body);
+										res.redirect('/tracks');
+									});
+								} else {
+									texto = 'Ya existe una cancion con ese nombre';
+									res.render('tracks/new', {texto:texto});							
+								}
+					});
 					} else {
 						concole.log('Introduzca una imagen. Extensiones soportadas: gif, bmp, jpg, png, jpeg');
 					}
@@ -109,26 +118,32 @@ exports.create = function (req, res) {
 	 				}
 					var url = 'http://tracks.cdpsfy.es/cancion/' + track.originalname;
 					var urlImg = 'http://tracks.cdpsfy.es/imagen/cover.jpg';
-
-					//Escribe los metadatos de la nueva canción en la base de datos.
-					var new_track = new Tracks({
-						name: name,
-						url: url,
-						imgname: '',
-						urlImg: urlImg
-					});
-				 	new_track.save(function(err, new_track) {
-						if (err) {
-						    console.log('Error al subir el audio: ' + err);
-						};
-					});
-					//Mandamos la petición POST al servidor para guardar la canción
-					needle.post('http://tracks.cdpsfy.es', data, {multipart: true}, function optionalCallback(err, httpResponse, body) {
-				 		if (err) {
-							return console.error('upload failed:', err);
-				  		}
-				  		console.log('Upload successful!  Server responded with:', body);
-				  		res.redirect('/tracks');
+					Tracks.find({name: name}, function(err, tracks) {
+						if(tracks == ''){
+							//Escribe los metadatos de la nueva canción en la base de datos.
+							var new_track = new Tracks({
+								name: name,
+								url: url,
+								imgname: '',
+								urlImg: urlImg
+							});
+						 	new_track.save(function(err, new_track) {
+								if (err) {
+									  console.log('Error al subir el audio: ' + err);
+								};
+							});
+							//Mandamos la petición POST al servidor para guardar la canción
+							needle.post('http://tracks.cdpsfy.es', data, {multipart: true}, function optionalCallback(err, httpResponse, body) {
+						 		if (err) {
+									return console.error('upload failed:', err);
+									}
+									console.log('Upload successful!  Server responded with:', body);
+									res.redirect('/tracks');
+							});
+						} else {
+								texto = 'Ya existe una cancion con ese nombre en la base de datos';
+								res.render('tracks/new', {texto:texto});	
+						}
 					});
 				}
 			} else { 
@@ -149,15 +164,17 @@ exports.destroy = function (req, res) {
 	// Aquí debe implementarse el borrado del fichero de audio indetificado por trackId en tracks.cdpsfy.es
 	
 	Tracks.findOne({name: req.params.trackId}, function(err, track) {
-		//Si el nombre de la imagen es '' es que usa la imagen por defecto, y por tanto no la borra del servidor
-		if (track.imgname !== ''){
-			needle.request('delete', 'http://tracks.cdpsfy.es/imagen/' + track.imgname, null, function(err, resp) {
-			  if (err) {
-				return console.error('Delete failed:', err);
-			  }
-			  console.log('Delete successful!  Server responded with:', resp.body);
-			});
-		}
+		Tracks.find({imgname: track.imgname}, function(err, track1) {
+			//Si el nombre de la imagen es '' es que usa la imagen por defecto, y por tanto no la borra del servidor
+			if (track.imgname !== '' && track1.length == 0){
+				needle.request('delete', 'http://tracks.cdpsfy.es/imagen/' + track.imgname, null, function(err, resp) {
+					if (err) {
+					return console.error('Delete failed:', err);
+					}
+					console.log('Delete successful!  Server responded with:', resp.body);
+				});
+			}
+		 });
 		//Borra la canción de la base de datos
 	    track.remove(function(err, track) {
                 if (err) {

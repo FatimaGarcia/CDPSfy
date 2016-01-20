@@ -79,6 +79,15 @@ html{
     font-size: 20px;
     letter-spacing: 1px;
 }
+#fallo{
+    display:none;
+    margin-top: 30px;
+    margin-left: 210px;
+    text-align: center;
+    font-family:'Raleway', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+}
 .upload {
     margin-right: 15%;
     text-align: left;

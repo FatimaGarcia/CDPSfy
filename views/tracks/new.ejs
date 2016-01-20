@@ -4,10 +4,12 @@ function comprueba_extension(archivo, archivo2) {
    	extensiones = new Array(".mp3", ".ogg", ".wav"); 
 	extensionesImg = new Array(".jpg", ".jpeg", ".png", ".bmp", ".gif"); 
 
-    var error = document.getElementById('error');
+        var error = document.getElementById('error');
+	var fallo = document.getElementById('fallo');
 	var valid = false;
 
     if (!archivo) { 
+      fallo.style.display = "none";
       error.style.display = "block";
       error.innerHTML = "Introduzca una canción";
     } else { 
@@ -20,12 +22,14 @@ function comprueba_extension(archivo, archivo2) {
          } 
       }
 	  if (!permitidaMusica) { 
+		fallo.style.display = "none";
          error.style.display = "block";
      	 error.innerHTML = "Introduzca una canción con una extensión adecuada";
       } else { 
 		if(!archivo2) { 			
 	        valid = true;
-					error.style.display = "none";
+		error.style.display = "none";
+		fallo.style.display = "none";
 		} else {
 			extensionI = (archivo2.substring(archivo2.lastIndexOf("."))).toLowerCase(); 
 			permitidaImg = false; 
@@ -37,10 +41,12 @@ function comprueba_extension(archivo, archivo2) {
 			}
 			if (!permitidaImg) { 
 				error.style.display = "block";
+				fallo.style.display = "none";
 				error.innerHTML = "Introduzca una imagen con una extensión adecuada";
 			} else {
 				valid = true;
 				error.style.display = "none";
+				fallo.style.display = "none";
 			}
 		}
       } 
@@ -58,9 +64,15 @@ function comprueba_extension(archivo, archivo2) {
 	</div>
 	<div class="row">
 	 <div class="col-sm-12 col-md-10 alert-wrapper">
-        <span id="error" class="alert alert-danger"></span>
-    </div>
+        	<span id="error" class="alert alert-danger"></span>
+	<% if(texto !== '') { %>
+		 <div class="col-sm-12 col-md-10 alert-wrapper" id="fallo" style="display:block;">
+		<span class="alert alert-danger"><%=texto%></span>
+		</div>
+	<% } %>
+    	</div>
 	</div>
+
   <div class="row" id="container">
 		<div class="col-lg-6" id="formu">
 			<form action="/tracks" method="post" enctype="multipart/form-data"  name="formulario" id="formulario">
